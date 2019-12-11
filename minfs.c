@@ -148,19 +148,37 @@ static const struct address_space_operations minfs_aops = {
 	.write_end      = simple_write_end,
 };
 
+static ssize_t
+minfs_file_read_iter(struct kiocb *iocb, struct iov_iter *iter) {
+  ssize_t r;
+
+  dprintk("[start] I am minfs_file_read_iter");
+
+  printk(KERN_DEBUG "flip = %p", iocb->ki_filp);
+  printk(KERN_DEBUG "mapping = %p", iocb->ki_filp->f_mapping);
+  printk(KERN_DEBUG "inode = %p", iocb->ki_filp->f_mapping->host);
+  printk(KERN_DEBUG "inode.i_ino = %lu", ((struct inode *)iocb->ki_filp->f_mapping->host)->i_ino);
+  
+  r = generic_file_read_iter(iocb, iter);
+  dprintk("[end] I am minfs_file_read_iter");
+  return r;
+}
+
+
+static ssize_t
+minfs_file_write_iter(struct kiocb *iocb, struct iov_iter *from) {
+  ssize_t r;
+  
+  dprintk("[start] I am minfs_file_write_iter");
+  r = generic_file_write_iter(iocb, from);
+  dprintk("[end] I am minfs_file_write_iter");
+  return r;
+}
+
 static const struct file_operations minfs_file_operations =
   {
-   // .read		= do_sync_read,
-   .read_iter   = generic_file_read_iter,
-   // .aio_read	= generic_file_aio_read,
-   // .write		= do_sync_write,
-   .write_iter  = generic_file_write_iter,
-   // .aio_write	= generic_file_aio_write,
-   .mmap		= generic_file_mmap,
-   .fsync		= noop_fsync,
-   .splice_read	= generic_file_splice_read,
-   .splice_write	= iter_file_splice_write, // generic_file_splice_write,
-   .llseek		= generic_file_llseek,
+   .read_iter   = minfs_file_read_iter,
+   .write_iter  = minfs_file_write_iter,
   };
 
 static struct inode_operations minfs_file_inode_operations = {
@@ -212,7 +230,7 @@ out_bad_sb:
 
 static const struct file_operations minfs_dir_operations = {
 	.read		= generic_read_dir,
-	.iterate	= minfs_readdir,
+	.iterate        = minfs_readdir,
 };
 
 /*
@@ -561,8 +579,7 @@ out_bad_blocksize:
 static struct dentry *minfs_mount(struct file_system_type *fs_type,
 		int flags, const char *dev_name, void *data)
 {
-	return mount_bdev(fs_type, flags, dev_name, data,
-			minfs_fill_super);
+	return mount_bdev(fs_type, flags, dev_name, data, minfs_fill_super);
 }
 
 static struct file_system_type minfs_fs_type = {
