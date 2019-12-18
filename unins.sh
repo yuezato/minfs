@@ -1,0 +1,2 @@
+umount wks
+rmmod minfs

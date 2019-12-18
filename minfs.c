@@ -142,11 +142,35 @@ out_bad_sb:
 	return NULL;
 }
 
-static const struct address_space_operations minfs_aops = {
-	.readpage       = simple_readpage,
-	.write_begin    = simple_write_begin,
-	.write_end      = simple_write_end,
-};
+static int minfs_get_block(struct inode *inode, sector_t iblock, struct buffer_head *bh_result, int create) {
+  struct super_block *sb = inode->i_sb;
+
+  // max 5block / per
+  sector_t phys = 10 + (inode->i_ino * 5) + iblock;
+
+  map_bh(bh_result, sb, phys);
+  
+  dprintk("[start] I am minfs_get_block");
+  // asm volatile ("int $3");
+  return 0;
+}
+
+static int minfs_readpage(struct file *file, struct page *page) {
+  return block_read_full_page(page, minfs_get_block);
+}
+
+static int minfs_writepage(struct page *page, struct writeback_control *wbc) {
+  return block_write_full_page(page, minfs_get_block, wbc);
+}
+
+static const struct address_space_operations minfs_aops =
+  {
+   // .readpage       = simple_readpage, // diskに書き込めてることがstringsでわかっても、simple_readpageだと読み込み失敗するぽいので
+   .readpage       = minfs_readpage,
+   .writepage      = minfs_writepage,
+   .write_begin    = simple_write_begin,
+   .write_end      = simple_write_end,
+  };
 
 static ssize_t
 minfs_file_read_iter(struct kiocb *iocb, struct iov_iter *iter) {
@@ -168,6 +192,8 @@ minfs_file_read_iter(struct kiocb *iocb, struct iov_iter *iter) {
 static ssize_t
 minfs_file_write_iter(struct kiocb *iocb, struct iov_iter *from) {
   ssize_t r;
+
+  // asm volatile ("int $3");
   
   dprintk("[start] I am minfs_file_write_iter");
   r = generic_file_write_iter(iocb, from);
@@ -175,10 +201,18 @@ minfs_file_write_iter(struct kiocb *iocb, struct iov_iter *from) {
   return r;
 }
 
+static int
+minfs_file_fsync(struct file *file, loff_t start, loff_t end,
+		 int datasync) {
+  dprintk("I am minfs_file_fsync");
+  return generic_file_fsync(file, start, end, datasync);
+}
+
 static const struct file_operations minfs_file_operations =
   {
    .read_iter   = minfs_file_read_iter,
    .write_iter  = minfs_file_write_iter,
+   .fsync       = minfs_file_fsync,
   };
 
 static struct inode_operations minfs_file_inode_operations = {
@@ -397,6 +431,9 @@ static int minfs_create(struct inode *dir, struct dentry *dentry,
 	inode->i_mode = mode;
 	inode->i_op = &minfs_file_inode_operations;
 	inode->i_fop = &minfs_file_operations;
+
+	inode->i_mapping->a_ops = &minfs_aops;
+	
 	mii = container_of(inode, struct minfs_inode_info, vfs_inode);
 	mii->data_block = MINFS_FIRST_DATA_BLOCK + inode->i_ino;
 
