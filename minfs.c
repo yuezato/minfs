@@ -2,6 +2,7 @@
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/uio.h>
 #include <linux/sched.h>
 #include <linux/pagemap.h>
 #include <linux/buffer_head.h>
@@ -163,6 +164,27 @@ static int minfs_writepage(struct page *page, struct writeback_control *wbc) {
   return block_write_full_page(page, minfs_get_block, wbc);
 }
 
+
+static ssize_t minfs_direct_IO(struct kiocb *iocb, struct iov_iter *iter) {
+  dprintk("I am minfs_direct_IO");
+
+  struct file *file = iocb->ki_filp;
+  struct address_space *mapping = file->f_mapping;
+  struct inode *inode = mapping->host;
+  size_t count = iov_iter_count(iter);
+  loff_t offset = iocb->ki_pos;
+  ssize_t ret = blockdev_direct_IO(iocb, inode, iter, minfs_get_block);
+
+  /*
+    ext2, ext4 や reiserfsを真似るべき
+   */
+  if(ret < 0 && iov_iter_rw(iter) == WRITE) {
+    dprintk("[fail] minfs_direct_IO");
+  }
+  
+  return ret;
+}
+
 static const struct address_space_operations minfs_aops =
   {
    // .readpage       = simple_readpage, // diskに書き込めてることがstringsでわかっても、simple_readpageだと読み込み失敗するぽいので
@@ -170,6 +192,8 @@ static const struct address_space_operations minfs_aops =
    .writepage      = minfs_writepage,
    .write_begin    = simple_write_begin,
    .write_end      = simple_write_end,
+
+   .direct_IO      = minfs_direct_IO,
   };
 
 static ssize_t
@@ -178,7 +202,7 @@ minfs_file_read_iter(struct kiocb *iocb, struct iov_iter *iter) {
 
   dprintk("[start] I am minfs_file_read_iter");
 
-  printk(KERN_DEBUG "flip = %p", iocb->ki_filp);
+  printk(KERN_DEBUG "filp = %p", iocb->ki_filp);
   printk(KERN_DEBUG "mapping = %p", iocb->ki_filp->f_mapping);
   printk(KERN_DEBUG "inode = %p", iocb->ki_filp->f_mapping->host);
   printk(KERN_DEBUG "inode.i_ino = %lu", ((struct inode *)iocb->ki_filp->f_mapping->host)->i_ino);
@@ -208,8 +232,15 @@ minfs_file_fsync(struct file *file, loff_t start, loff_t end,
   return generic_file_fsync(file, start, end, datasync);
 }
 
+static loff_t
+minfs_file_llseek(struct file *file, loff_t offset, int whence) {
+  dprintk("I am minfs_file_llseek");
+  return generic_file_llseek(file, offset, whence);
+}
+
 static const struct file_operations minfs_file_operations =
   {
+   .llseek      = minfs_file_llseek,
    .read_iter   = minfs_file_read_iter,
    .write_iter  = minfs_file_write_iter,
    .fsync       = minfs_file_fsync,

@@ -1,0 +1,3 @@
+probe module("minfs").function("minfs_direct_IO") {
+  print_backtrace();
+}
