@@ -246,9 +246,10 @@ static const struct file_operations minfs_file_operations =
    .fsync       = minfs_file_fsync,
   };
 
-static struct inode_operations minfs_file_inode_operations = {
-	.getattr	= simple_getattr,
-};
+static struct inode_operations minfs_file_inode_operations =
+  {
+   .getattr	= simple_getattr,
+  };
 
 static int minfs_readdir(struct file *filp, struct dir_context *ctx)
 {
@@ -303,12 +304,11 @@ static const struct file_operations minfs_dir_operations = {
  */
 
 static struct minfs_dir_entry *minfs_find_entry(struct dentry *dentry,
-		struct buffer_head **bhp)
+						struct buffer_head **bhp)
 {
 	struct buffer_head *bh;
 	struct inode *dir = dentry->d_parent->d_inode;
-	struct minfs_inode_info *mii = container_of(dir,
-			struct minfs_inode_info, vfs_inode);
+	struct minfs_inode_info *mii = container_of(dir, struct minfs_inode_info, vfs_inode);
 	struct super_block *sb = dir->i_sb;
 	const char *name = dentry->d_name.name;
 	struct minfs_dir_entry *final_de = NULL;
@@ -446,7 +446,7 @@ out:
  */
 
 static int minfs_create(struct inode *dir, struct dentry *dentry,
-		umode_t mode, bool excl)
+			umode_t mode, bool excl)
 {
 	struct inode *inode;
 	struct minfs_inode_info *mii;
@@ -486,9 +486,48 @@ err_new_inode:
 	return err;
 }
 
+static int minfs_unlink(struct inode *dir, struct dentry *dentry) {
+  int err = -ENOENT;
+  struct inode *inode = d_inode(dentry);
+  struct super_block *sb = inode->i_sb;
+  struct minfs_sb_info *sbi = sb->s_fs_info;
+  struct buffer_head *bh;
+
+  // これに相当するものってminfsだとなんだろ
+  struct minfs_dir_entry *de;
+
+  de = minfs_find_entry(dentry, &bh);
+  if(!de)
+    goto end_unlink;
+
+  // ここでファイル削除を永続化する必要がある……
+  // そもそもdiskに書き込む操作ってどうしてるんだ
+  // inodeを作る時の対になる操作として実装したいけど
+  // inodeを作る時に永続化しているのが誰なのかがわからない
+
+  unsigned int remove_ino = de->ino;
+  clear_bit(remove_ino, &sbi->imap);
+  mark_buffer_dirty(sbi->sbh);
+  brelse(sbi->sbh);
+  
+  err = 0;
+  if(err)
+    goto end_unlink;
+  
+  mark_inode_dirty(inode);
+  inode->i_ctime = dir->i_ctime;
+  inode_dec_link_count(inode);
+
+  // mark dirty の順番はこれで良い……?
+  
+ end_unlink:
+  return err;
+}
+
 static struct inode_operations minfs_dir_inode_operations = {
-	.lookup		= minfs_lookup,
-	.create		= minfs_create,
+	.lookup	= minfs_lookup,
+	.create	= minfs_create,
+	.unlink = minfs_unlink,
 };
 
 /*
