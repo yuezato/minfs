@@ -501,10 +501,13 @@ static int minfs_unlink(struct inode *dir, struct dentry *dentry) {
   de->ino = 0;
   mark_buffer_dirty(bh);
   brelse(bh);
-  
+
+  inode->i_ctime = inode->i_mtime = current_time(inode);
   mark_inode_dirty(inode);
   inode->i_ctime = dir->i_ctime;
   inode_dec_link_count(inode);
+
+  return 0;
   
  end_unlink:
   dprintk("error @ minfs_unlink");
