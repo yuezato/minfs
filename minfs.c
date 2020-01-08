@@ -486,41 +486,28 @@ err_new_inode:
 	return err;
 }
 
+// dentryに絡むフィールドをクリア
 static int minfs_unlink(struct inode *dir, struct dentry *dentry) {
   int err = -ENOENT;
   struct inode *inode = d_inode(dentry);
-  struct super_block *sb = inode->i_sb;
-  struct minfs_sb_info *sbi = sb->s_fs_info;
   struct buffer_head *bh;
-
-  // これに相当するものってminfsだとなんだろ
   struct minfs_dir_entry *de;
 
+  // こっちはsuperblockではなく
+  // ディレクトリ構造の方の永続化
   de = minfs_find_entry(dentry, &bh);
   if(!de)
     goto end_unlink;
-
-  // ここでファイル削除を永続化する必要がある……
-  // そもそもdiskに書き込む操作ってどうしてるんだ
-  // inodeを作る時の対になる操作として実装したいけど
-  // inodeを作る時に永続化しているのが誰なのかがわからない
-
-  unsigned int remove_ino = de->ino;
-  clear_bit(remove_ino, &sbi->imap);
-  mark_buffer_dirty(sbi->sbh);
-  brelse(sbi->sbh);
-  
-  err = 0;
-  if(err)
-    goto end_unlink;
+  de->ino = 0;
+  mark_buffer_dirty(bh);
+  brelse(bh);
   
   mark_inode_dirty(inode);
   inode->i_ctime = dir->i_ctime;
   inode_dec_link_count(inode);
-
-  // mark dirty の順番はこれで良い……?
   
  end_unlink:
+  dprintk("error @ minfs_unlink");
   return err;
 }
 
@@ -606,10 +593,40 @@ static void minfs_put_super(struct super_block *sb)
 	dprintk("released superblock resources\n");
 }
 
+/*
+  minixのminix_evict_inodeを参考にしている
+ */
+static void minfs_evict_inode(struct inode* inode) {
+  truncate_inode_pages_final(&inode->i_data);
+
+  if(inode->i_nlink == 0) {
+    inode->i_size = 0;
+    //!
+    //ここでminixだとminix_truncate(inode)をしている
+  }
+  
+  invalidate_inode_buffers(inode);
+  clear_inode(inode);
+
+  if(inode->i_nlink == 0) {
+    struct super_block *sb = inode->i_sb;
+    /*
+    struct buffer_head *bh = sb_bread(sb, MINFS_SUPER_BLOCK);
+    struct minfs_super_block *ms = (struct minfs_super_block*)bh->b_data;
+    */
+    struct minfs_sb_info *sbi = sb->s_fs_info;
+
+    clear_bit(inode->i_ino, &sbi->imap);
+    mark_buffer_dirty(sbi->sbh);
+    // brelse(sbi->sbh);
+  }
+}
+
 static const struct super_operations minfs_ops = {
 	.statfs		= simple_statfs,
 	.alloc_inode	= minfs_alloc_inode,
 	.destroy_inode	= minfs_destroy_inode,
+	.evict_inode    = minfs_evict_inode,
 	.write_inode	= minfs_write_inode,
 	.put_super	= minfs_put_super,
 };
