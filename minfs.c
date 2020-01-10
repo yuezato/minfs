@@ -20,7 +20,7 @@ MODULE_LICENSE("GPL");
 
 
 #define LOG_LEVEL	KERN_ALERT
-#define DEBUG		1
+#define DEBUG		0
 
 #if DEBUG == 1
 #define dprintk(fmt, ...)	\
@@ -549,7 +549,7 @@ static void minfs_destroy_inode(struct inode *inode)
  */
 
 static int minfs_write_inode(struct inode *inode, struct
-		writeback_control *wbc)
+			     writeback_control *wbc)
 {
 	struct super_block *sb = inode->i_sb;
 	struct minfs_inode *mi;
@@ -579,8 +579,8 @@ static int minfs_write_inode(struct inode *inode, struct
 	mark_buffer_dirty(bh);
 	brelse(bh);
 
-	dprintk("wrote inode %lu\n", inode->i_ino);
-
+	dprintk("wrote inode %lu (size %llu)\n", inode->i_ino, inode->i_size);
+	
 out:
 	return err;
 }

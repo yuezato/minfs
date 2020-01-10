@@ -1,5 +1,7 @@
 make clean
 make
+make mkfs.minfs
+make direct
 ./mkfs.minfs /dev/sdb
 insmod minfs.ko
 mount -t minfs /dev/sdb wks/

@@ -59,22 +59,6 @@ int main(int argc, char **argv)
 	fseek(file, MINFS_INODE_BLOCK * MINFS_BLOCK_SIZE, SEEK_SET);
 	fwrite(&root_inode, sizeof(root_inode), 1, file);
 
-	/* initialize new inode */
-	memset(&file_inode, 0, sizeof(file_inode));
-	file_inode.uid = 0;
-	file_inode.gid = 0;
-	file_inode.mode = S_IFREG | 0644;
-	file_inode.size = 0;
-	file_inode.data_block = MINFS_FIRST_DATA_BLOCK + 1;
-	fwrite(&file_inode, sizeof(file_inode), 1, file);
-
-	/* add dentry information */
-	memset(&file_dentry, 0, sizeof(file_dentry));
-	file_dentry.ino = 1;
-	memcpy(file_dentry.name, "a.txt", 5);
-	fseek(file, MINFS_FIRST_DATA_BLOCK * MINFS_BLOCK_SIZE, SEEK_SET);
-	fwrite(&file_dentry, sizeof(file_dentry), 1, file);
-
 	fclose(file);
 
 	return 0;

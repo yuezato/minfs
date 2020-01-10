@@ -12,28 +12,32 @@
 int main(int argc, char **argv){
    int fd, flag, i, bufsize, count;
    char *buf;
+   char *filename;
    struct timeval tv1, tv2;
 
-   if(argc != 4){
-      printf("usage: direct_or_not[0/1], bufsize(x512), count\n");
+   if(argc != 5){
+      printf("usage: out_file direct_or_not[1/0], bufsize(x512), count\n");
       exit(1);
    }
 
-   if(atoi(argv[1])){
-      flag = O_WRONLY | O_CREAT | O_DIRECT;
-   }else if(atoi(argv[1]) == 0){
+   if(atoi(argv[2])){
+     flag = O_WRONLY | O_CREAT | O_DIRECT;
+      puts("Enable O_DIRECT");
+   }else if(atoi(argv[2]) == 0){
       flag = O_WRONLY | O_CREAT;
+      puts("Disable O_DIRECT");
    }else{
-      printf("usage: direct_or_not[0/1], bufsize(x512), count\n");
+      printf("usage: out_file direct_or_not[1/0], bufsize(x512), count\n");
       exit(1);
    }
 
-   bufsize = atoi(argv[2]);
-   count = atoi(argv[3]);
+   filename = argv[1];
+   bufsize = atoi(argv[3]);
+   count = atoi(argv[4]);
 
-   printf("flag: %d, bufsize: %d, count: %d\n", atoi(argv[1]), bufsize, count);
+   printf("flag: %d, bufsize: %d, count: %d\n", atoi(argv[2]), bufsize, count);
 
-   fd = open("wks/test", flag, S_IREAD | S_IWRITE);
+   fd = open(filename, flag, S_IREAD | S_IWRITE);
    if(fd < 0){
       printf("open fail\n");
       exit(1);
