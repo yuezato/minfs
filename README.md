@@ -1,5 +1,13 @@
 # minfs
+なんか書く
 
+# Motivation
++ Journaling of Journal Is (Almost) Free
+  + https://www.usenix.org/node/179874
++ File systems unfit as distributed storage backends: lessons from 10 years of Ceph evolution
+  + https://dl.acm.org/doi/10.1145/3341301.3359656
+
+# 使い方
 ## 準備
 `/dev/sdb`が破壊されても良いブロックデバイスであること。
 Vagrantなりなんなりで準備すると良い。
