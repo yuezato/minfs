@@ -652,6 +652,9 @@ static int minfs_fill_super(struct super_block *s, void *data, int silent)
 	if (!sb_set_blocksize(s, MINFS_BLOCK_SIZE))
 		goto out_bad_blocksize;
 
+	/* set maximum size for a file */
+	s->s_maxbytes = MAX_LFS_FILESIZE;
+
 	/* read first block from disk (contains disk superblock) */
 	bh = sb_bread(s, MINFS_SUPER_BLOCK);
 	if (bh == NULL)
