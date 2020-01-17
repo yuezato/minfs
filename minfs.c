@@ -384,7 +384,7 @@ static struct inode *minfs_new_inode(struct inode *dir)
 	int idx;
 
 	idx = find_first_zero_bit(&sbi->imap, MINFS_NUM_INODES);
-	if (idx < 0) {
+	if (idx == MINFS_NUM_INODES) {
 		printk(LOG_LEVEL "no space left in imap\n");
 		return NULL;
 	}
@@ -457,7 +457,7 @@ static int minfs_create(struct inode *dir, struct dentry *dentry,
 	inode = minfs_new_inode(dir);
 	if (inode == NULL) {
 		printk(LOG_LEVEL "error allocating new inode\n");
-		err = -ENOMEM;
+		err = -ENOSPC;
 		goto err_new_inode;
 	}
 
