@@ -4,8 +4,12 @@
 #define MINFS_MAGIC		0xDEADF00D
 #define MINFS_NAME_LEN		16
 #define MINFS_BLOCK_SIZE	4096
-#define MINFS_NUM_INODES	32
-#define MINFS_NUM_ENTRIES	32
+
+// MINFS_NUM_INODES includes the root inode
+// Therefore, MINFS_NUM_INODES - 1 is the number of inodes that we can create essentially
+#define MINFS_NUM_INODES	2
+
+#define MINFS_NUM_ENTRIES	MINFS_NUM_INODES
 
 #define MINFS_ROOT_INODE	0
 

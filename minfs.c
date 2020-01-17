@@ -1,9 +1,11 @@
+#include <linux/bitops.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/uio.h>
 #include <linux/sched.h>
+#include <linux/statfs.h>
 #include <linux/pagemap.h>
 #include <linux/buffer_head.h>
 #include <linux/slab.h>
@@ -202,10 +204,10 @@ minfs_file_read_iter(struct kiocb *iocb, struct iov_iter *iter) {
 
   dprintk("[start] I am minfs_file_read_iter");
 
-  printk(KERN_DEBUG "filp = %p", iocb->ki_filp);
-  printk(KERN_DEBUG "mapping = %p", iocb->ki_filp->f_mapping);
-  printk(KERN_DEBUG "inode = %p", iocb->ki_filp->f_mapping->host);
-  printk(KERN_DEBUG "inode.i_ino = %lu", ((struct inode *)iocb->ki_filp->f_mapping->host)->i_ino);
+  dprintk("filp = %p", iocb->ki_filp);
+  dprintk("mapping = %p", iocb->ki_filp->f_mapping);
+  dprintk("inode = %p", iocb->ki_filp->f_mapping->host);
+  dprintk("inode.i_ino = %lu", ((struct inode *)iocb->ki_filp->f_mapping->host)->i_ino);
   
   r = generic_file_read_iter(iocb, iter);
   dprintk("[end] I am minfs_file_read_iter");
@@ -625,8 +627,27 @@ static void minfs_evict_inode(struct inode* inode) {
   }
 }
 
+static int minfs_statfs(struct dentry *dentry, struct kstatfs *buf) {
+  struct super_block *sb = dentry->d_sb;
+  struct minfs_sb_info *sbi = sb->s_fs_info;
+
+  buf->f_type = sb->s_magic;
+  buf->f_bsize = sb->s_blocksize;
+  buf->f_namelen = MINFS_NAME_LEN;
+
+  // buf->f_blockas =
+  // buf->f_bfree =
+  // buf->f_bavail = buf->f_bfree;
+
+  // f_files includes root inode
+  buf->f_files = MINFS_NUM_INODES;
+  buf->f_ffree = buf->f_files - hweight_long(sbi->imap);
+
+  return 0;
+}
+
 static const struct super_operations minfs_ops = {
-	.statfs		= simple_statfs,
+	.statfs		= minfs_statfs,
 	.alloc_inode	= minfs_alloc_inode,
 	.destroy_inode	= minfs_destroy_inode,
 	.evict_inode    = minfs_evict_inode,

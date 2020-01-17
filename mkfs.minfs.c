@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
 	msb.magic = MINFS_MAGIC;
 	msb.version = 1;
-	msb.imap = 0x03;
+	msb.imap = 0x01; // set 0-th bit for the root directory inode
 
 	/* zero disk  */
 	memset(buffer, 0,  MINFS_BLOCK_SIZE);
