@@ -1,4 +1,10 @@
 # Cannylsを用いた他ファイルシステムとのパフォーマンス比較
+結果一覧
+* [シーケンシャルライト1](https://github.com/yuezato/minfs/blob/master/cannyls_benchmark.md#%E3%82%B7%E3%83%BC%E3%82%B1%E3%83%B3%E3%82%B7%E3%83%A3%E3%83%AB%E3%83%A9%E3%82%A4%E3%83%881)
+* [シーケンシャルライト2](https://github.com/yuezato/minfs/blob/master/cannyls_benchmark.md#シーケンシャルライト2)
+* [ランダムアクセス1](https://github.com/yuezato/minfs/blob/master/cannyls_benchmark.md#ランダムアクセス1)
+* [ランダムアクセス2](https://github.com/yuezato/minfs/blob/master/cannyls_benchmark.md#ランダムアクセス2)
+
 Cannylsを用いる理由は、このファイルシステムはそもそもCannylsの高速化を意図して作っているため。
 
 Cannylsの重要な特性
