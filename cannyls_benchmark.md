@@ -5,6 +5,8 @@
 * [ランダムアクセス1](https://github.com/yuezato/minfs/blob/master/cannyls_benchmark.md#ランダムアクセス1)
 * [ランダムアクセス2](https://github.com/yuezato/minfs/blob/master/cannyls_benchmark.md#ランダムアクセス2)
 
+***
+
 Cannylsを用いる理由は、このファイルシステムはそもそもCannylsの高速化を意図して作っているため。
 
 Cannylsの重要な特性
